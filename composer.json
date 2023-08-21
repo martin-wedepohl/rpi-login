@@ -1,0 +1,11 @@
+{
+    "name": "pi/rpiserver",
+    "type": "project",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "CAT\\": "/",
+            "CAT\\Api\\": "Api/"
+        }
+    }
+}
