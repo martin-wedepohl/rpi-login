@@ -259,7 +259,7 @@ class Users
             ];
 
             $num_updated = $this->_dba->update($table, 'id', $fields, $fdata);
-            if (0 === $insert_id) {
+            if (0 === $num_updated) {
                 throw new \Exception('Unable to update user in the database');
             }
 

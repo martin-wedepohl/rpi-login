@@ -25,9 +25,12 @@ require_once __DIR__ . '/vendor/autoload.php';
  * PHP can't read json data directly
  */
 $contentType = isset($_SERVER["CONTENT_TYPE"]) ? trim($_SERVER["CONTENT_TYPE"]) : '';
+$contentType = substr($contentType, 0, 16);
 $args        = [];
+$content     = '';
 
 if ($contentType === "application/json") {
+
     // Receive the RAW post data.
     $content = trim(file_get_contents("php://input"));
 
