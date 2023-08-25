@@ -49,9 +49,12 @@ Then we create tables.
     (`id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
      `modification` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
      `username` VARCHAR(50) NOT NULL,
+     `name` VARCHAR(100) NOT NULL,
+     `email` VARCHAR(100) NOT NULL,
      `hash` VARCHAR(500) NULL,
     PRIMARY KEY (`id`),
-    UNIQUE `u_un` (`username`))
+    UNIQUE `u_un` (`username`),
+    UNIQUE `u_em` (`email`)),
     ENGINE = InnoDB;
 ```
 

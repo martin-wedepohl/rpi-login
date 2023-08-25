@@ -65,11 +65,17 @@ class Users
         $action = isset($args['action']) ? $args['action'] : '';
         
         switch ($action) {
+            case 'account':
+                $result = $this->account($args);
+                break;
             case 'create':
                 $result = $this->create($args);
                 break;
             case 'login':
                 $result = $this->login($args);
+                break;
+            case 'update':
+                $result = $this->update($args);
                 break;
             case 'validate':
                 $result = $this->validate($args);
@@ -82,12 +88,56 @@ class Users
     }
 
     /**
+     * Retrieve users information from the system.
+     *
+     * The arguments are:
+     *   data['username'] - The username to create.
+     *   data['token']    - The users token.
+     *
+     * @param array $args Array of arguments.
+     *
+     * @return array User information.
+     */
+    public function account($args) {
+        try {
+            $table    = self::$_users_table;
+
+            $validated = $this->validate($args);
+            if (false === $validated['validated']) {
+                throw new \Exception('Invalid credentials');
+            }
+
+            $data     = isset($args['data']) ? $args['data'] : null;
+            $username = isset($data['username']) ? $data['username'] : null;
+
+            if (null === $username) {
+                throw new \Exception('Username is required');
+            }
+            
+            $sql    = "SELECT `name`, `modification` AS last_login, `email` FROM {$table} WHERE username=:username";
+            $params = ['username' => $username];
+            $stmt   = $this->_dba->query($sql, $params);
+            if (false === $row = $stmt->fetch()) {
+                throw new \Exception("User {$username} does not exists");
+            }
+
+            $results = $row;
+
+            return $results;
+            
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    /**
      * Create a new user in the database.
      *
      * The arguments are:
      *   data['username'] - The username to create.
      *   data['password'] - The users password.
      *   data['name']     - The users name.
+     *   data['email']    - The users address.
      *
      * @param array $args Array of arguments.
      *
@@ -101,6 +151,7 @@ class Users
             $username = isset($data['username']) ? trim($data['username']) : null;
             $password = isset($data['password']) ? trim($data['password']) : null;
             $name     = isset($data['name']) ? trim($data['name']) : null;
+            $email    = isset($data['email']) ? trim($data['email']) : null;
 
             // Validate input.
             $error = '';
@@ -112,6 +163,10 @@ class Users
             }
             if (null === $name || '' === $name) {
                 $error .= "Name is required\r\n";
+            }
+            $email = filter_var($email, FILTER_VALIDATE_EMAIL);
+            if (false === $email) {
+                $error .= "Email is invalid\r\n";
             }
 
             if ('' !== $error) {
@@ -146,12 +201,16 @@ class Users
                 'modification',
                 'username',
                 'hash',
+                'name',
+                'email',
             ];
 
             $fdata = [
                 'modification' => $now,
                 'username'     => $username,
                 'hash'         => $hash,
+                'name'         => $name,
+                'email'        => $email,
             ];
 
             $insert_id = $this->_dba->insert($table, $fields, $fdata);
@@ -277,6 +336,113 @@ class Users
             $token = $row['token'];
 
             $results['token'] = $row['token'];
+
+            return $results;
+
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * Update user info in the database.
+     *
+     * The arguments are:
+     *   data['username'] - The username to update.
+     *   data['token']    - The token to validate.
+     *   data['password'] - The users password (optional).
+     *   data['name']     - The users name (optional).
+     *   data['email']    - The users email (optional).
+     *
+     * @param array $args Array of arguments.
+     *
+     * @return array If the update was successful or not.
+     */
+    public function update($args) {
+        try {
+            $table    = self::$_users_table;
+
+            $validated = $this->validate($args);
+            if (false === $validated['validated']) {
+                throw new \Exception('Invalid credentials');
+            }
+
+            $data     = isset($args['data']) ? $args['data'] : null;
+            $username = isset($data['username']) ? $data['username'] : null;
+            $password = isset($data['password']) ? trim($data['password']) : null;
+            $name     = isset($data['name']) ? trim($data['name']) : null;
+            $email    = isset($data['email']) ? trim($data['email']) : null;
+
+            if (null === $username) {
+                throw new \Exception('Username is required');
+            }
+
+            $email = filter_var($email, FILTER_VALIDATE_EMAIL);
+            if (false === $email) {
+                throw new \Exception("Email is invalid");
+            }
+
+
+            // Check get the id from the username.
+            $sql    = "SELECT `id` FROM {$table} WHERE username=:username";
+            $params = ['username' => $username];
+
+            $stmt   = $this->_dba->query($sql, $params);
+            if (false === $row = $stmt->fetch()) {
+                throw new \Exception("User {$username} does not exists");
+            }
+
+            $id = $row['id'];
+            $now = date('Y-m-d H:i:s');
+
+            if ($password) {
+                // Create a hashed password from the salt, password and pepper.
+                $sql = "SELECT SHA2(CONCAT(:salt, :password, :pepper), 512) AS hash";
+                $params = [
+                    'salt'     => $now,
+                    'password' => $password,
+                    'pepper'   => DBConfig::DB_PEPPER,
+                ];
+                $stmt   = $this->_dba->query($sql, $params);
+                if (false === $row = $stmt->fetch()) {
+                    throw new \Exception('Unable to create password hash');
+                }
+                $hash = $row['hash'];
+            }
+
+            $fields = [];
+            $fdata  = [];
+
+            if ($password) {
+                $fields[]              = 'hash';
+                $fdata['hash']         = $hash;
+                $fields[]              = 'modification';
+                $fdata['modification'] = $now;
+            }
+
+            if ($name) {
+                $fields[]      = 'name';
+                $fdata['name'] = $name;
+            }
+
+            if ($email) {
+                $fields[]       = 'email';
+                $fdata['email'] = $email;
+            }
+
+            if (count($fields) > 0) {
+                $fdata['id'] = $id;
+                $num_updated = $this->_dba->update($table, 'id', $fields, $fdata);
+                $results['updated'] = $num_updated > 0 ? true : false;
+                if ($password) {
+                    $results['login_required'] = true;
+                } else {
+                    $results['login_required'] = false;
+                }
+            } else {
+                $results['updated']        = false;
+                $results['login_required'] = false;
+            }
 
             return $results;
 
