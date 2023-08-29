@@ -20,12 +20,12 @@ The user will be USERNAME with the password of PASSWORD.
 
 `MariaDB [(none)]> CREATE USER 'USERNAME'@'localhost' IDENTIFIED BY 'PASSWORD';`
 
-### Grant privilages
+### Grant privileges
 
 User USERNAME will be able to do anything in the database DB_NAME.
 
 ```
-MariaDB [(none)]> GRANT ALL PRIVILAGES ON DB_NAME.* TO 'USERNAME'@'localhost';
+MariaDB [(none)]> GRANT ALL PRIVILEGES ON DB_NAME.* TO 'USERNAME'@'localhost';
 MariaDB [(none)]> FLUSH PRIVILEGES;
 ```
 
@@ -54,7 +54,7 @@ Then we create tables.
      `hash` VARCHAR(500) NULL,
     PRIMARY KEY (`id`),
     UNIQUE `u_un` (`username`),
-    UNIQUE `u_em` (`email`)),
+    UNIQUE `u_em` (`email`))
     ENGINE = InnoDB;
 ```
 
@@ -148,4 +148,47 @@ composer install
 
 ```
 composer dump-autoload
+```
+
+### Create DBConfig.php file in the /Api/DBConfig directory
+
+```
+<?php
+/**
+ * Database constants
+ *
+ * MUST NOT BE STORED IN git
+ *
+ * PHP Version 7
+ *
+ * @category Config
+ * @package  DBConfig
+ * @author   Martin Wedepohl <martin.wedepohl@gmail.com>
+ * @license  https:// Proprietary
+ * @link     https://API/Config/DBConfig.php
+ */
+namespace CAT\Api\DBConfig;
+
+require_once __DIR__ . '/../../vendor/autoload.php';
+
+/**
+ * Website database constants class
+ *
+ * MUST NOT BE STORED IN git
+ *
+ * @category Class
+ * @package  DBConfig
+ * @author   Martin Wedepohl <martin.wedepohl@gmail.com>
+ * @license  https:// Proprietary
+ * @link     https://API/Config/DBConfig.php
+ */
+class DBConfig
+{
+    const DB_HOST          = '127.0.0.1';
+    const DB_PORT          = 3306;
+    const DB_NAME          = 'CHANGE_TO_DATABASE_NAME';
+    const DB_USERNAME      = 'CHANGE_TO_DATABASE_USERNAME';
+    const DB_PASSWORD      = 'CHANGE_TO_DATABASE_USERNAME_PASSWORD';
+    const DB_PEPPER        = 'CHANGE_TO_DATABASE_PEPPER_LONG_RANDOM_HEX_CHARACTERS';
+}
 ```
